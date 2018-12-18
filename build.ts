@@ -105,7 +105,7 @@ function uglify(src: string) {
 async function buildScripts() {
   try {
     const transpiled = await fs.readFile("./dist/flatpickr.js");
-    fs.writeFile("./dist/flatpickr.min.js", uglify(transpiled.toString()));
+    fs.writeFile("./dist/flatpickr.min.js", transpiled.toString());
     console.log("done.");
   } catch (e) {
     logErr(e);

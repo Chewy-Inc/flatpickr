@@ -12,7 +12,7 @@ export default {
   output: {
     file: 'dist/flatpickr.js',
     name: "flatpickr",
-    format: 'umd',
+    format: 'esm',
     exports: "default",
     banner: `/* flatpickr v${pkg.version}, @license MIT */`
   },
