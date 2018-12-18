@@ -65,6 +65,11 @@ export const english: Locale = {
   toggleTitle: "Click to toggle",
   amPM: ["AM", "PM"],
   yearAriaLabel: "Year",
+  hoursAriaLabel: "Hours",
+  minutesAriaLabel: "Minutes",
+  secondsAriaLabel: "Seconds",
+  nextMonthAriaLabel: "Next Month",
+  prevMonthAriaLabel: "Previous Month",
 };
 
 export default english;

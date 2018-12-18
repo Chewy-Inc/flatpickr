@@ -55,6 +55,11 @@ export type Locale = {
   toggleTitle: string;
   amPM: [string, string];
   yearAriaLabel: string;
+  hoursAriaLabel: string;
+  minutesAriaLabel: string;
+  secondsAriaLabel: string;
+  prevMonthAriaLabel: string;
+  nextMonthAriaLabel: string;
 };
 
 export type CustomLocale = {

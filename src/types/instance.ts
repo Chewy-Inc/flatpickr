@@ -15,6 +15,7 @@ export interface Elements {
   todayDateElem?: DayElement;
 
   _positionElement: HTMLElement;
+  _dateLiveRegion: HTMLElement;
   weekdayContainer: HTMLDivElement;
   calendarContainer: HTMLDivElement;
   innerContainer?: HTMLDivElement;
@@ -60,6 +61,7 @@ export type Instance = Elements &
     minRangeDate?: Date;
     maxRangeDate?: Date;
     now: Date;
+    latestFocusedDay?: DayElement;
     latestSelectedDateObj?: Date;
     _selectedDateObj?: Date;
     selectedDates: Date[];
@@ -92,7 +94,10 @@ export type Instance = Elements &
     destroy: () => void;
     isEnabled: (date: DateOption, timeless?: boolean) => boolean;
     jumpToDate: (date?: DateOption) => void;
-    open: (e?: FocusEvent | MouseEvent, positionElement?: HTMLElement) => void;
+    open: (
+      e?: FocusEvent | MouseEvent | KeyboardEvent,
+      positionElement?: HTMLElement
+    ) => void;
     redraw: () => void;
     set: (
       option: keyof Options | { [k in keyof Options]?: Options[k] },

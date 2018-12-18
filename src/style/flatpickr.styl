@@ -88,7 +88,7 @@
 
   &.showTimeInput.hasTime
     .flatpickr-time
-      height $timeHeight
+      display flex
       border-top 1px solid $calendarBorderColor
 
     if $noCalendarBorder is defined
@@ -100,7 +100,7 @@
 
   &.noCalendar.hasTime
     .flatpickr-time
-      height auto
+      display flex
 
   &:before, &:after
     position absolute
@@ -172,6 +172,7 @@
     flex 1
 
   .flatpickr-prev-month, .flatpickr-next-month
+    appearance none
     text-decoration none
     cursor pointer
     position absolute
@@ -180,6 +181,7 @@
     height $monthNavHeight
     padding 10px
     z-index 3
+    border 0
     color $monthForeground
     fill $monthForeground
 
@@ -208,8 +210,11 @@
       /*rtl:end:ignore*//*
       */
 
-    &:hover
+    &:hover, &:focus
+      outline 0
       color $todayColor
+      background lighten($dayHoverBackground, 5)
+
       svg
         if $arrow_hover_color is defined
           fill $arrow_hover_color
@@ -570,13 +575,11 @@ span.flatpickr-weekday
 .flatpickr-time
   text-align center
   outline 0
-  display block
-  height 0 // hide initially
+  display none
   line-height $timeHeight
   max-height $timeHeight
   box-sizing border-box
   overflow hidden
-  display flex
 
   if $noCalendarBorder is defined
     background $calendarBackground
@@ -642,10 +645,14 @@ span.flatpickr-weekday
     align-self center
 
   .flatpickr-am-pm
+    appearance none
+    padding 0
     outline 0
     width 18%
+    border 0
     cursor pointer
     text-align center
+    font-size inherit
     font-weight 400
 
   input, .flatpickr-am-pm
@@ -654,3 +661,14 @@ span.flatpickr-weekday
 
 .flatpickr-input[readonly]
   cursor pointer
+
+.flatpickr-visuallyhidden
+  border 0
+  clip rect(0 0 0 0)
+  height 1px
+  margin -1px
+  overflow hidden
+  padding 0
+  position absolute
+  width 1px
+  white-space nowrap

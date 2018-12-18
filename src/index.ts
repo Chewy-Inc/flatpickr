@@ -332,15 +332,31 @@ function FlatpickrInstance(
    * @param {Event} event the keyup or increment event
    */
   function onYearInput(event: KeyboardEvent & IncrementEvent) {
-    const year =
+    let year =
       parseInt((event.target as HTMLInputElement).value) + (event.delta || 0);
 
-    if (
-      year / 1000 > 1 ||
-      (event.key === "Enter" && !/[^\d]/.test(year.toString()))
-    ) {
-      changeYear(year);
+    if (year / 1000 < 1 || /[^\d]/.test(year.toString())) {
+      return;
     }
+
+    // "Enter"                           13
+    // "ArrowUp"    (IE "Up")            38
+    // "ArrowDown"  (IE "Down")          40
+    switch (event.keyCode) {
+      case 13:
+        changeYear(year);
+        break;
+      case 38:
+        changeYear(self.currentYear + 1);
+        break;
+      case 40:
+        changeYear(self.currentYear - 1);
+        break;
+      default:
+        break;
+    }
+
+    focusOnLastestDayFocused();
   }
 
   /**
@@ -437,8 +453,20 @@ function FlatpickrInstance(
       bind(self._input, "mousedown", onClick(self.open));
     }
 
+    bind(self._input, "keydown", e => {
+      if (e.keyCode !== 40) return;
+      e.preventDefault();
+      e.stopPropagation();
+      self.open(e);
+    });
+
     if (self.daysContainer !== undefined) {
       bind(self.monthNav, "mousedown", onClick(onMonthNavClick));
+
+      bind(self.monthNav, ["keydown"], e => {
+        if (e.keyCode !== 13 && e.keyCode !== 32) return;
+        onMonthNavClick(e);
+      });
 
       bind(self.monthNav, ["keyup", "increment"], onYearInput);
       bind(self.daysContainer, "mousedown", onClick(selectDate));
@@ -541,15 +569,38 @@ function FlatpickrInstance(
     input && input.dispatchEvent(event);
   }
 
+  function announceChange() {
+    const d = new Date(self.currentYear, self.currentMonth, 1);
+    d.setMonth(self.currentMonth);
+
+    const monthString = monthToStr(
+      d.getMonth(),
+      self.config.shorthandCurrentMonth,
+      self.l10n
+    );
+    const yearString = d.getFullYear().toString();
+
+    self._dateLiveRegion.textContent = `${monthString} ${yearString}`;
+  }
+
   function build() {
     const fragment = window.document.createDocumentFragment();
     self.calendarContainer = createElement<HTMLDivElement>(
       "div",
       "flatpickr-calendar"
     );
-    self.calendarContainer.tabIndex = -1;
+
+    if (!self.config.inline) {
+      self.calendarContainer.setAttribute("role", "dialog");
+      self.calendarContainer.setAttribute(
+        "aria-help",
+        "Calendar Shortcuts Here"
+      );
+    }
 
     if (!self.config.noCalendar) {
+      self.calendarContainer.setAttribute("aria-label", "Calendar");
+
       fragment.appendChild(buildMonthNav());
       self.innerContainer = createElement<HTMLDivElement>(
         "div",
@@ -574,7 +625,6 @@ function FlatpickrInstance(
           "div",
           "flatpickr-days"
         );
-        self.daysContainer.tabIndex = -1;
       }
 
       buildDays();
@@ -618,6 +668,9 @@ function FlatpickrInstance(
       );
 
       if (self.config.inline) {
+        self.latestFocusedDay = self.todayDateElem;
+        focusOnLastestDayFocused();
+
         if (!customAppend && self.element.parentNode)
           self.element.parentNode.insertBefore(
             self.calendarContainer,
@@ -661,19 +714,11 @@ function FlatpickrInstance(
 
     dayElement.dateObj = date;
     dayElement.$i = i;
+    dayElement.setAttribute("role", "button");
     dayElement.setAttribute(
       "aria-label",
       self.formatDate(date, self.config.ariaDateFormat)
     );
-
-    if (
-      className.indexOf("hidden") === -1 &&
-      compareDates(date, self.now) === 0
-    ) {
-      self.todayDateElem = dayElement;
-      dayElement.classList.add("today");
-      dayElement.setAttribute("aria-current", "date");
-    }
 
     if (dateIsEnabled) {
       dayElement.tabIndex = -1;
@@ -701,6 +746,16 @@ function FlatpickrInstance(
       }
     } else {
       dayElement.classList.add("disabled");
+      dayElement.setAttribute("aria-disabled", "true");
+    }
+
+    if (
+      className.indexOf("hidden") === -1 &&
+      compareDates(date, self.now) === 0
+    ) {
+      self.todayDateElem = dayElement;
+      dayElement.classList.add("today");
+      dayElement.setAttribute("aria-current", "date");
     }
 
     if (self.config.mode === "range") {
@@ -726,8 +781,51 @@ function FlatpickrInstance(
   }
 
   function focusOnDayElem(targetNode: DayElement) {
+    targetNode.tabIndex = 0;
     targetNode.focus();
+    self.latestFocusedDay = targetNode;
     if (self.config.mode === "range") onMouseOver(targetNode);
+  }
+
+  function focusOnLastestDayFocused(focus = false) {
+    if (!self.latestFocusedDay) return;
+
+    let i = 0;
+    const dayElems = self.days.children;
+    const dayNumber = self.latestFocusedDay.innerText;
+
+    while (i < dayElems.length) {
+      const dayElem = dayElems[i] as DayElement;
+      const dayMatches = dayNumber === dayElem.innerText;
+      const dayEnabled = !(
+        dayElem.classList.contains("hidden") ||
+        dayElem.classList.contains("disabled")
+      );
+      const dayInMonth = !(
+        dayElem.classList.contains("prevMonthDay") ||
+        dayElem.classList.contains("nextMonthDay")
+      );
+
+      if (dayMatches && dayEnabled && dayInMonth) {
+        if (focus) {
+          focusOnDayElem(dayElem);
+        } else {
+          dayElem.tabIndex = 0;
+        }
+
+        return;
+      }
+
+      i++;
+    }
+
+    const firstDay = getFirstAvailableDay(1) as DayElement;
+
+    if (focus) {
+      focusOnDayElem(firstDay);
+    } else {
+      firstDay.tabIndex = 0;
+    }
   }
 
   function getFirstAvailableDay(delta: number) {
@@ -741,7 +839,12 @@ function FlatpickrInstance(
 
       for (let i = startIndex; i != endIndex; i += delta) {
         const c = month.children[i] as DayElement;
-        if (c.className.indexOf("hidden") === -1 && isEnabled(c.dateObj))
+        if (
+          c.className.indexOf("hidden") === -1 &&
+          c.className.indexOf("prevMonthDay") === -1 &&
+          c.className.indexOf("nextMonthDay") === -1 &&
+          isEnabled(c.dateObj)
+        )
           return c;
       }
     }
@@ -778,6 +881,8 @@ function FlatpickrInstance(
         const c = month.children[i] as DayElement;
         if (
           c.className.indexOf("hidden") === -1 &&
+          c.className.indexOf("prevMonthDay") === -1 &&
+          c.className.indexOf("nextMonthDay") === -1 &&
           isEnabled(c.dateObj) &&
           Math.abs(current.$i - i) >= Math.abs(delta)
         )
@@ -805,7 +910,11 @@ function FlatpickrInstance(
 
     if (startElem === undefined) return self._input.focus();
 
-    if (!dayFocused) return focusOnDayElem(startElem);
+    if (!dayFocused) {
+      return focusOnDayElem(startElem);
+    }
+
+    startElem.tabIndex = -1;
 
     getNextAvailableDay(startElem, offset);
   }
@@ -902,7 +1011,7 @@ function FlatpickrInstance(
 
     const monthElement = createElement<HTMLSpanElement>("span", "cur-month");
 
-    const yearInput = createNumberInput("cur-year", { tabindex: "-1" });
+    const yearInput = createNumberInput("cur-year", { tabindex: "0" });
 
     const yearElement = yearInput.getElementsByTagName(
       "input"
@@ -930,6 +1039,7 @@ function FlatpickrInstance(
       "div",
       "flatpickr-current-month"
     );
+
     currentMonth.appendChild(monthElement);
     currentMonth.appendChild(yearInput);
 
@@ -968,13 +1078,25 @@ function FlatpickrInstance(
     self.monthElements = [];
 
     self.prevMonthNav = createElement<HTMLSpanElement>(
-      "span",
+      "button",
       "flatpickr-prev-month"
     );
+    self.prevMonthNav.setAttribute("aria-label", self.l10n.prevMonthAriaLabel);
     self.prevMonthNav.innerHTML = self.config.prevArrow;
 
-    self.nextMonthNav = createElement("span", "flatpickr-next-month");
+    self.nextMonthNav = createElement("button", "flatpickr-next-month");
+    self.nextMonthNav.setAttribute("aria-label", self.l10n.nextMonthAriaLabel);
     self.nextMonthNav.innerHTML = self.config.nextArrow;
+
+    self._dateLiveRegion = createElement<HTMLDivElement>(
+      "div",
+      "flatpickr-visuallyhidden"
+    );
+
+    self._dateLiveRegion.setAttribute("aria-live", "polite");
+    self._dateLiveRegion.setAttribute("aria-atomic", "true");
+
+    self.calendarContainer.appendChild(self._dateLiveRegion);
 
     buildMonths();
 
@@ -1011,7 +1133,6 @@ function FlatpickrInstance(
       self.calendarContainer.classList.add("noCalendar");
 
     self.timeContainer = createElement<HTMLDivElement>("div", "flatpickr-time");
-    self.timeContainer.tabIndex = -1;
     const separator = createElement("span", "flatpickr-time-separator", ":");
 
     const hourInput = createNumberInput("flatpickr-hour");
@@ -1023,8 +1144,6 @@ function FlatpickrInstance(
     self.minuteElement = minuteInput.getElementsByTagName(
       "input"
     )[0] as HTMLInputElement;
-
-    self.hourElement.tabIndex = self.minuteElement.tabIndex = -1;
 
     self.hourElement.value = pad(
       self.latestSelectedDateObj
@@ -1103,7 +1222,7 @@ function FlatpickrInstance(
     if (!self.config.time_24hr) {
       // add self.amPM if appropriate
       self.amPM = createElement(
-        "span",
+        "button",
         "flatpickr-am-pm",
         self.l10n.amPM[
           int(
@@ -1114,7 +1233,7 @@ function FlatpickrInstance(
         ]
       );
       self.amPM.title = self.l10n.toggleTitle;
-      self.amPM.tabIndex = -1;
+      self.amPM.tabIndex = 0;
       self.timeContainer.appendChild(self.amPM);
     }
 
@@ -1487,6 +1606,10 @@ function FlatpickrInstance(
     // "Backspace"                        8
     // "Tab"                              9
     // "Enter"                           13
+    // "PageUp"                          33
+    // "PageDown"                        34
+    // "End"                             35
+    // "Home"                            36
     // "Escape"     (IE "Esc")           27
     // "ArrowLeft"  (IE "Left")          37
     // "ArrowUp"    (IE "Up")            38
@@ -1509,7 +1632,7 @@ function FlatpickrInstance(
             : self.config.dateFormat
         );
         return (e.target as HTMLElement).blur();
-      } else self.open();
+      } else self.open(e);
     } else if (
       isCalendarElem(e.target as HTMLElement) ||
       allowKeydown ||
@@ -1539,6 +1662,18 @@ function FlatpickrInstance(
           }
           break;
 
+        case 33: // PageUp
+        case 34: // PageDown
+          if (!isTimeObj) {
+            e.preventDefault();
+
+            const delta = e.keyCode === 33 ? 1 : -1;
+
+            changeMonth(delta);
+            focusOnLastestDayFocused(true);
+          }
+          break;
+
         case 37:
         case 39:
           if (!isTimeObj) {
@@ -1565,6 +1700,7 @@ function FlatpickrInstance(
         case 38:
         case 40:
           e.preventDefault();
+
           const delta = e.keyCode === 40 ? 1 : -1;
           if (
             (self.daysContainer && (e.target as DayElement).$i !== undefined) ||
@@ -1574,9 +1710,13 @@ function FlatpickrInstance(
               e.stopPropagation();
               changeYear(self.currentYear - delta);
               focusOnDay(getFirstAvailableDay(1), 0);
-            } else if (!isTimeObj) focusOnDay(undefined, delta * 7);
-          } else if (self.config.enableTime) {
-            if (!isTimeObj && self.hourElement) self.hourElement.focus();
+            } else if (!isTimeObj) {
+              focusOnDay(undefined, delta * 7);
+            }
+          } else if (
+            e.target !== self.currentYearElement &&
+            self.config.enableTime
+          ) {
             updateTime(e);
             self._debouncedChange();
           }
@@ -1584,30 +1724,12 @@ function FlatpickrInstance(
           break;
 
         case 9:
-          if (!isTimeObj) {
-            self.element.focus();
-            break;
-          }
-          const elems = [
-            self.hourElement,
-            self.minuteElement,
-            self.secondElement,
-            self.amPM,
-          ].filter(x => x) as HTMLInputElement[];
-
-          const i = elems.indexOf(e.target as HTMLInputElement);
-
-          if (i !== -1) {
-            const target = elems[i + (e.shiftKey ? -1 : 1)];
-            if (target !== undefined) {
-              e.preventDefault();
-              target.focus();
-            } else {
-              self.element.focus();
-            }
+          if (!self.config.inline) {
+            trapFocus(e);
           }
 
           break;
+
         default:
           break;
       }
@@ -1736,7 +1858,7 @@ function FlatpickrInstance(
   }
 
   function open(
-    e?: FocusEvent | MouseEvent,
+    e?: FocusEvent | KeyboardEvent | MouseEvent,
     positionElement = self._positionElement
   ) {
     if (self.isMobile === true) {
@@ -1766,8 +1888,14 @@ function FlatpickrInstance(
       triggerEvent("onOpen");
       positionCalendar(positionElement);
       self.calendarContainer.focus();
-      if (self.config.noCalendar === false) {
-        focusOnDay(undefined, 0);
+      if (e && self.config.noCalendar === false) {
+        e.preventDefault();
+
+        if (self.latestFocusedDay) {
+          focusOnLastestDayFocused(true);
+        } else {
+          focusOnDay(undefined, 0);
+        }
       }
     }
 
@@ -1786,9 +1914,10 @@ function FlatpickrInstance(
       if (
         self.config.allowInput === false &&
         (e === undefined ||
-          !(<HTMLDivElement>self.timeContainer).contains(
-            e.relatedTarget as Node
-          ))
+          ("relatedTarget" in e &&
+            !(<HTMLDivElement>self.timeContainer).contains(
+              e.relatedTarget as Node
+            )))
       ) {
         setTimeout(() => (<HTMLInputElement>self.hourElement).select(), 50);
       }
@@ -2093,6 +2222,27 @@ function FlatpickrInstance(
     }
   }
 
+  function trapFocus(e: KeyboardEvent) {
+    const focusable = self.calendarContainer.querySelectorAll(
+      ".flatpickr-prev-month:not(.disabled), .flatpickr-next-month:not(.disabled), .cur-year, .flatpickr-day[tabindex='0'], .flatpickr-hour, .flatpickr-minute, .flatpickr-am-pm"
+    );
+
+    const first = focusable[0] as HTMLElement;
+    const last = focusable[focusable.length - 1] as HTMLElement;
+
+    if (e.shiftKey && e.target === first) {
+      e.preventDefault();
+      last.focus();
+
+      return;
+    }
+
+    if (!e.shiftKey && e.target === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   function selectDate(e: MouseEvent | KeyboardEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -2152,6 +2302,9 @@ function FlatpickrInstance(
 
     updateNavigationCurrentMonth();
     buildDays();
+
+    self.latestFocusedDay = self.selectedDateElem;
+    focusOnLastestDayFocused();
 
     updateValue();
 
@@ -2593,8 +2746,6 @@ function FlatpickrInstance(
   }
 
   function onMonthNavClick(e: MouseEvent) {
-    e.preventDefault();
-
     const isPrevMonth = self.prevMonthNav.contains(e.target as Node);
     const isNextMonth = self.nextMonthNav.contains(e.target as Node);
 
@@ -2607,6 +2758,9 @@ function FlatpickrInstance(
     } else if ((e.target as Element).classList.contains("arrowDown")) {
       self.changeYear(self.currentYear - 1);
     }
+
+    announceChange();
+    focusOnLastestDayFocused();
   }
 
   function timeWrapper(
