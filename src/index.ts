@@ -592,6 +592,7 @@ function FlatpickrInstance(
 
     if (!self.config.inline) {
       self.calendarContainer.setAttribute("role", "dialog");
+      self.calendarContainer.setAttribute("aria-modal", "true");
       self.calendarContainer.setAttribute(
         "aria-help",
         "Calendar Shortcuts Here"
@@ -1888,8 +1889,10 @@ function FlatpickrInstance(
       triggerEvent("onOpen");
       positionCalendar(positionElement);
       self.calendarContainer.focus();
-      if (e && self.config.noCalendar === false) {
-        e.preventDefault();
+      if (self.config.noCalendar === false) {
+        if (e) {
+          e.preventDefault();
+        }
 
         if (self.latestFocusedDay) {
           focusOnLastestDayFocused(true);
