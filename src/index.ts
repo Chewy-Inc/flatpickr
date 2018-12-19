@@ -1670,8 +1670,46 @@ function FlatpickrInstance(
 
             const delta = e.keyCode === 33 ? 1 : -1;
 
-            changeMonth(delta);
+            if (e.shiftKey) {
+              changeYear(self.currentYear + delta);
+            } else {
+              changeMonth(delta);
+            }
+
             focusOnLastestDayFocused(true);
+          }
+          break;
+
+        case 35: // End
+        case 36: // Home
+          if (!isTimeObj) {
+            e.preventDefault();
+
+            if (e.keyCode === 36) {
+              focusOnDay(getFirstAvailableDay(1), 0);
+            } else {
+              const daysInMonth = self.utils.getDaysInMonth(self.currentMonth);
+              const monthDaysElems = Array.from(self.days.children).filter(
+                dayElem => {
+                  const dayEnabled = !(
+                    dayElem.classList.contains("hidden") ||
+                    dayElem.classList.contains("disabled")
+                  );
+                  const dayInMonth = !(
+                    dayElem.classList.contains("prevMonthDay") ||
+                    dayElem.classList.contains("nextMonthDay")
+                  );
+
+                  return dayEnabled && dayInMonth;
+                }
+              );
+
+              const lastDayElem = monthDaysElems[
+                monthDaysElems.length - 1
+              ] as DayElement;
+
+              focusOnDay(lastDayElem, 0);
+            }
           }
           break;
 
@@ -1687,12 +1725,7 @@ function FlatpickrInstance(
             ) {
               const delta = e.keyCode === 39 ? 1 : -1;
 
-              if (!e.ctrlKey) focusOnDay(undefined, delta);
-              else {
-                e.stopPropagation();
-                changeMonth(delta);
-                focusOnDay(getFirstAvailableDay(1), 0);
-              }
+              focusOnDay(undefined, delta);
             }
           } else if (self.hourElement) self.hourElement.focus();
 
