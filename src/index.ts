@@ -1922,17 +1922,6 @@ function FlatpickrInstance(
       triggerEvent("onOpen");
       positionCalendar(positionElement);
       self.calendarContainer.focus();
-      if (self.config.noCalendar === false) {
-        if (e) {
-          e.preventDefault();
-        }
-
-        if (self.latestFocusedDay) {
-          focusOnLastestDayFocused(true);
-        } else {
-          focusOnDay(undefined, 0);
-        }
-      }
     }
 
     if (self.config.enableTime === true && self.config.noCalendar === true) {
