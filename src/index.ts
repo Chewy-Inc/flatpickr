@@ -1856,9 +1856,9 @@ function FlatpickrInstance(
 
         if (elem !== undefined) {
           elem.classList.add(
-            hoverDate < self.selectedDates[0].getTime()
-              ? "startRange"
-              : "endRange"
+            hoverDate > self.selectedDates[0].getTime()
+              ? "endRange"
+              : "startRange"
           );
 
           if (
