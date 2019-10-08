@@ -2160,43 +2160,67 @@ function FlatpickrInstance(
 
     triggerEvent("onPreCalendarPosition");
     const positionElement = customPositionElement || self._positionElement;
-
+    const isAppended =
+      self.config.appendTo && self.config.appendTo !== window.document.body;
     const calendarHeight = Array.prototype.reduce.call(
-        self.calendarContainer.children,
-        (acc: number, child: HTMLElement) => acc + child.offsetHeight,
-        0
-      ),
-      calendarWidth = self.calendarContainer.offsetWidth,
-      configPos = self.config.position.split(" "),
-      configPosVertical = configPos[0],
-      configPosHorizontal = configPos.length > 1 ? configPos[1] : null,
-      inputBounds = positionElement.getBoundingClientRect(),
-      distanceFromBottom = window.innerHeight - inputBounds.bottom,
-      showOnTop =
-        configPosVertical === "above" ||
-        (configPosVertical !== "below" &&
-          distanceFromBottom < calendarHeight &&
-          inputBounds.top > calendarHeight);
+      self.calendarContainer.children,
+      (acc: number, child: HTMLElement) => acc + child.offsetHeight,
+      0
+    );
+    const configPos = self.config.position.split(" ");
+    const configPosVertical = configPos[0];
+    const inputBounds = positionElement.getBoundingClientRect();
+    const distanceFromBottom = window.innerHeight - inputBounds.bottom;
+    const showOnTop =
+      configPosVertical === "above" ||
+      (configPosVertical !== "below" &&
+        distanceFromBottom < calendarHeight &&
+        inputBounds.top > calendarHeight);
 
-    let top =
-      window.pageYOffset +
-      inputBounds.top +
-      (!showOnTop ? positionElement.offsetHeight + 2 : -calendarHeight - 2);
+    let top;
+    if (isAppended) {
+      top = positionElement.offsetTop;
+    } else {
+      top = window.pageYOffset + inputBounds.top;
+    }
+
+    top += !showOnTop ? positionElement.offsetHeight + 2 : -calendarHeight - 2;
 
     toggleClass(self.calendarContainer, "arrowTop", !showOnTop);
     toggleClass(self.calendarContainer, "arrowBottom", showOnTop);
 
     if (self.config.inline) return;
 
-    const left =
-      window.pageXOffset +
-      inputBounds.left -
-      (configPosHorizontal != null && configPosHorizontal === "center"
+    const calendarWidth = self.calendarContainer.offsetWidth;
+    const configPosHorizontal = configPos.length > 1 ? configPos[1] : null;
+
+    let left;
+    if (isAppended) {
+      left = positionElement.offsetLeft;
+    } else {
+      left = window.pageXOffset + inputBounds.left;
+    }
+    left -=
+      configPosHorizontal != null && configPosHorizontal === "center"
         ? (calendarWidth - inputBounds.width) / 2
-        : 0);
-    const right = window.document.body.offsetWidth - inputBounds.right;
-    const rightMost = left + calendarWidth > window.document.body.offsetWidth;
-    const centerMost = right + calendarWidth > window.document.body.offsetWidth;
+        : 0;
+
+    let offsetWidth;
+    let right;
+    if (isAppended) {
+      offsetWidth = positionElement.offsetWidth;
+      right =
+        ((positionElement.offsetParent &&
+          (positionElement.offsetParent as HTMLElement).offsetWidth) ||
+          0) -
+        positionElement.offsetLeft -
+        offsetWidth;
+    } else {
+      offsetWidth = window.document.body.offsetWidth;
+      right = offsetWidth - inputBounds.right;
+    }
+
+    const rightMost = left + calendarWidth > offsetWidth;
 
     toggleClass(self.calendarContainer, "rightMost", rightMost);
 
@@ -2204,6 +2228,7 @@ function FlatpickrInstance(
 
     self.calendarContainer.style.top = `${top}px`;
 
+    const centerMost = right + calendarWidth > offsetWidth;
     if (!rightMost) {
       self.calendarContainer.style.left = `${left}px`;
       self.calendarContainer.style.right = "auto";
