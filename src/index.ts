@@ -1269,20 +1269,32 @@ function FlatpickrInstance(
   function updateWeekdays() {
     const firstDayOfWeek = self.l10n.firstDayOfWeek;
     let weekdays = [...self.l10n.weekdays.shorthand];
+    let weekdaysLong = [...self.l10n.weekdays.longhand];
 
     if (firstDayOfWeek > 0 && firstDayOfWeek < weekdays.length) {
       weekdays = [
         ...weekdays.splice(firstDayOfWeek, weekdays.length),
         ...weekdays.splice(0, firstDayOfWeek),
       ];
+      weekdaysLong = [
+        ...weekdaysLong.splice(firstDayOfWeek, weekdaysLong.length),
+        ...weekdaysLong.splice(0, firstDayOfWeek),
+      ];
     }
 
     for (let i = self.config.showMonths; i--; ) {
-      self.weekdayContainer.children[i].innerHTML = `
-      <span class='flatpickr-weekday'>
-        ${weekdays.join("</span><span class='flatpickr-weekday'>")}
-      </span>
-      `;
+      for (let x = 0; x < weekdays.length; x++) {
+        self.weekdayContainer.children[i].innerHTML +=
+          `<span class='flatpickr-weekday' role='text' aria-label='` +
+          weekdaysLong[x] +
+          `' title='` +
+          weekdaysLong[x] +
+          `'><abbr title='` +
+          weekdaysLong[x] +
+          `'>` +
+          weekdays[x] +
+          `</abbr></span>`;
+      }
     }
   }
 
