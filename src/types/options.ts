@@ -118,7 +118,7 @@ By default, Flatpickr utilizes native datetime widgets unless certain options (e
   enable: DateLimit<DateOption>[];
 
   /* Enables seconds selection in the time picker.
- */
+   */
   enableSeconds: boolean;
 
   /* Enables the time picker */
@@ -325,7 +325,7 @@ export const defaults: ParsedOptions = {
   animate:
     typeof window === "object" &&
     window.navigator.userAgent.indexOf("MSIE") === -1,
-  ariaDateFormat: "F j, Y",
+  ariaDateFormat: "l F j, Y",
   clickOpens: true,
   closeOnSelect: true,
   conjunction: ", ",
