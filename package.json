@@ -16,7 +16,9 @@
     "test:unit": "jest --config .jest.config.js",
     "coveralls": "jest --config .jest.config.js --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "keyboard-key": "^1.0.4"
+  },
   "devDependencies": {
     "@babel/core": "7.1.5",
     "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
