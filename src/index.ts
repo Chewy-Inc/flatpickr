@@ -471,7 +471,12 @@ function FlatpickrInstance(
       bind(self.monthNav, "mousedown", onClick(onMonthNavClick));
 
       bind(self.monthNav, ["keydown"], e => {
-        if (keyboardEvent(e) !== "Enter" && keyboardEvent(e) !== " ") return;
+        if (
+          keyboardEvent(e) !== "Enter" &&
+          keyboardEvent(e) !== " " &&
+          keyboardEvent(e) !== "Spacebar"
+        )
+          return;
         onMonthNavClick(e);
       });
 
