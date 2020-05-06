@@ -10,6 +10,7 @@ import {
   HookKey,
   HOOKS,
 } from "./types/options";
+import keyboardEvent from "./utils/keyboard-event";
 
 import { Locale, CustomLocale, key as LocaleKey } from "./types/locale";
 import English from "./l10n/default";
@@ -342,14 +343,16 @@ function FlatpickrInstance(
     // "Enter"                           13
     // "ArrowUp"    (IE "Up")            38
     // "ArrowDown"  (IE "Down")          40
-    switch (event.keyCode) {
-      case 13:
+    switch (keyboardEvent(event)) {
+      case "Enter":
         changeYear(year);
         break;
-      case 38:
+      case "ArrowUp":
+      case "Up":
         changeYear(self.currentYear + 1);
         break;
-      case 40:
+      case "ArrowDown":
+      case "Down":
         changeYear(self.currentYear - 1);
         break;
       default:
@@ -456,7 +459,9 @@ function FlatpickrInstance(
     }
 
     bind(self._input, "keydown", e => {
-      if (e.keyCode !== 40) return;
+      if (keyboardEvent(e) !== "ArrowDown" || keyboardEvent(e) !== "Down") {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       self.open(e);
@@ -466,7 +471,7 @@ function FlatpickrInstance(
       bind(self.monthNav, "mousedown", onClick(onMonthNavClick));
 
       bind(self.monthNav, ["keydown"], e => {
-        if (e.keyCode !== 13 && e.keyCode !== 32) return;
+        if (keyboardEvent(e) !== "Enter" && keyboardEvent(e) !== " ") return;
         onMonthNavClick(e);
       });
 
@@ -1628,7 +1633,7 @@ function FlatpickrInstance(
     const allowKeydown = self.isOpen && (!allowInput || !isInput);
     const allowInlineKeydown = self.config.inline && isInput && !allowInput;
 
-    if (e.keyCode === 13 && isInput) {
+    if (keyboardEvent(e) === "Enter" && isInput) {
       if (allowInput) {
         self.setDate(
           self._input.value,
@@ -1647,33 +1652,34 @@ function FlatpickrInstance(
       const isTimeObj =
         !!self.timeContainer &&
         self.timeContainer.contains(e.target as HTMLElement);
+      const key = keyboardEvent(e);
 
-      switch (e.keyCode) {
-        case 13:
+      switch (key) {
+        case "Enter":
           if (isTimeObj) updateTime();
           else selectDate(e);
 
           break;
 
-        case 27: // escape
+        case "Escape":
           e.preventDefault();
           focusAndClose();
           break;
 
-        case 8:
-        case 46:
+        case "Backspace":
+        case "Delete":
           if (isInput && !self.config.allowInput) {
             e.preventDefault();
             self.clear();
           }
           break;
 
-        case 33: // PageUp
-        case 34: // PageDown
+        case "PageDown":
+        case "PageUp":
           if (!isTimeObj) {
             e.preventDefault();
 
-            const delta = e.keyCode === 33 ? 1 : -1;
+            const delta = key === "PageDown" ? 1 : -1;
 
             if (e.shiftKey) {
               changeYear(self.currentYear + delta);
@@ -1685,12 +1691,12 @@ function FlatpickrInstance(
           }
           break;
 
-        case 35: // End
-        case 36: // Home
+        case "End":
+        case "Home":
           if (!isTimeObj) {
             e.preventDefault();
 
-            if (e.keyCode === 36) {
+            if (key === "Home") {
               focusOnDay(getFirstAvailableDay(1), 0);
             } else {
               const daysInMonth = self.utils.getDaysInMonth(self.currentMonth);
@@ -1718,8 +1724,10 @@ function FlatpickrInstance(
           }
           break;
 
-        case 37:
-        case 39:
+        case "ArrowLeft":
+        case "ArrowRight":
+        case "Left":
+        case "Right":
           if (!isTimeObj) {
             e.preventDefault();
 
@@ -1728,7 +1736,7 @@ function FlatpickrInstance(
               (allowInput === false ||
                 (document.activeElement && isInView(document.activeElement)))
             ) {
-              const delta = e.keyCode === 39 ? 1 : -1;
+              const delta = key === "ArrowRight" || key === "Right" ? 1 : -1;
 
               focusOnDay(undefined, delta);
             }
@@ -1736,11 +1744,13 @@ function FlatpickrInstance(
 
           break;
 
-        case 38:
-        case 40:
+        case "ArrowUp":
+        case "Up":
+        case "ArrowDown":
+        case "Down":
           e.preventDefault();
 
-          const delta = e.keyCode === 40 ? 1 : -1;
+          const delta = key === "ArrowDown" || key === "Down" ? 1 : -1;
           if (
             (self.daysContainer && (e.target as DayElement).$i !== undefined) ||
             e.target === self.input
@@ -1762,7 +1772,7 @@ function FlatpickrInstance(
 
           break;
 
-        case 9:
+        case "Tab":
           if (!self.config.inline) {
             trapFocus(e);
           }
