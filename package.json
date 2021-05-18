@@ -48,7 +48,7 @@
     "rollup": "0.67.1",
     "rollup-plugin-babel": "4.0.3",
     "rollup-plugin-livereload": "^0.6.0",
-    "rollup-plugin-serve": "0.6.0",
+    "rollup-plugin-serve": "1.0.2",
     "rollup-plugin-typescript": "1.0.0",
     "rtlcss": "^2.4.0",
     "source-map": "^0.7.3",
